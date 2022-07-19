@@ -129,4 +129,17 @@ public class Repository : IRepository, IDisposable
     {
         return _container?.Id;
     }
+
+    public async Task<IList<ItemResponse<T>>?> AddRange<T>(IDictionary<PartitionKey, T> items)
+    {
+        if (items == null || !items.Any())
+            return null;
+
+        var responses = new List<ItemResponse<T>>(); 
+        foreach (var item in items)
+        {
+            responses.Add(await _container.CreateItemAsync(item.Value, item.Key));
+        }         
+        return responses; 
+    }
 }

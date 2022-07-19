@@ -68,6 +68,38 @@ public class CosmosDbTests : IDisposable
         string? resultText = $"Acceptance test passed. Could create a new item in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()}";
 
         _output.WriteLine(resultText);
+
+        //TODO: implement clean up (deleting item) 
+    }
+
+    [Fact]
+    public void AddItemsAndRemoveItemsFromContainer_Succeeds()
+    {
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 110,
+            Task = $"Create first item of batch at the following time: {DateTime.UtcNow}"
+        };
+        var anotherTodoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 120,
+            Task = $"Create second item of batch at the following time: {DateTime.UtcNow}"
+        };
+
+        var todoList = new Dictionary<PartitionKey, TodoListItem> {
+            { new PartitionKey(todoItem.Id), todoItem },
+            { new PartitionKey(anotherTodoItem.Id), anotherTodoItem }
+        };
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        IList<ItemResponse<TodoListItem>>? responses = Task.Run(async () => await _repository.AddRange(todoList)).Result;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        responses?.All(r => r.StatusCode == System.Net.HttpStatusCode.Created).Should().BeTrue();
+        string? resultText = $"Acceptance test passed. Could create a set of two new items in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()} Partition keys used: {string.Join(",", todoList.Select(t => t.Value?.Id?.ToString()))}";
+        _output.WriteLine(resultText);
+        //todo implement clean up (deleting items)
     }
 
     public void Dispose()

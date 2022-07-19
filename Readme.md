@@ -13,6 +13,14 @@ correct partition key. It will default to '/id'. Also note that operations again
 container which adds, updates and deletes item(s) requires either a partition key or 
 object identifier to be passed in to correctly identify the row in the Azure Cosmos DB. 
 
+The connection string should be saved via dotnet user secrets for your project. Use the connection string 
+shown in Keys page in Azure portal for your Cosmos DB instance. 
+
+```
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:AzureCosmosDbConnString" "YOUR_PRIMARY_CONNECTION_STRIONG_AZUREDB_CONNECTIONSTRING"
+```
+
 
 ## Examples 
 
