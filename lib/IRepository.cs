@@ -20,6 +20,16 @@ public interface IRepository
     Task<ItemResponse<T>> Add<T>(T item, PartitionKey? partitionKey = null, object? id = null);
 
     /// <summary>
+    /// Removes an item from container in DB. Param <paramref name="partitionKey"/> and param <paramref name="id"/> must be provided.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="item"></param>
+    /// <param name="partitionKey"></param>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    Task<ItemResponse<T>> Remove<T>(PartitionKey? partitionKey = null, object? id = null);
+
+    /// <summary>
     /// Adds a set of items to container in DB. A shared partitionkey is used and the items are added inside a transaction as a single operation.
     /// </summary>
     /// <typeparam name="T"></typeparam>

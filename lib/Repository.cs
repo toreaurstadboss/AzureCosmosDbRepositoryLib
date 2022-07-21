@@ -142,4 +142,18 @@ public class Repository : IRepository, IDisposable
         }         
         return responses; 
     }
+
+    public async Task<ItemResponse<T>> Remove<T>(PartitionKey? partitionKey = null, object? id = null)
+    {
+        if (id == null)
+        {
+            throw new ArgumentNullException(nameof(id)); 
+        }
+        if (partitionKey == null)
+        {
+            throw new ArgumentNullException(nameof(partitionKey)); 
+        }
+        var response = await _container.DeleteItemAsync<T>(id.ToString(), partitionKey.Value);
+        return response;
+    }
 }

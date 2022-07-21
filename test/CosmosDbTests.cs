@@ -69,7 +69,10 @@ public class CosmosDbTests : IDisposable
 
         _output.WriteLine(resultText);
 
-        //TODO: implement clean up (deleting item) 
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        var responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
 
     [Fact]
@@ -100,6 +103,18 @@ public class CosmosDbTests : IDisposable
         string? resultText = $"Acceptance test passed. Could create a set of two new items in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()} Partition keys used: {string.Join(",", todoList.Select(t => t.Value?.Id?.ToString()))}";
         _output.WriteLine(resultText);
         //todo implement clean up (deleting items)
+
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        var responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(anotherTodoItem.Id), anotherTodoItem.Id));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+
     }
 
     public void Dispose()
