@@ -1,11 +1,12 @@
-﻿using Microsoft.Azure.Cosmos;
+﻿using AzureCosmosDbRepositoryLib.Contracts;
+using Microsoft.Azure.Cosmos;
 
 namespace AzureCosmosDbRepositoryLib;
 
 /// <summary>
 /// Implements a repository pattern for a container in Azure Cosmos DB
 /// </summary>
-public class Repository : IRepository, IDisposable 
+public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable 
 {
     //TODO: use partitionkeypath to infer how to build up partition keys implicitly
     //TODO: change implementation into a generic implementation 
@@ -80,17 +81,17 @@ public class Repository : IRepository, IDisposable
     }
 
 
-    public async Task<ItemResponse<T>> Add<T>(T item, PartitionKey? partitionKey = null, object? id = null)
+    public async Task<ISingleResult<T>?> Add(T item, PartitionKey? partitionKey = null, object? id = null)
     {
 
-        ItemResponse<T>? response = null; 
+        ISingleResult<T>? response = null; 
         if (partitionKey != null)
         {
-            response = await _container.CreateItemAsync(item, partitionKey); 
+            response = await SafeCallSingleItem(_container.CreateItemAsync(item, partitionKey)); 
         }
         if (id != null)
         {
-            response = await _container.CreateItemAsync(item, new PartitionKey(id.ToString())); 
+            response = await SafeCallSingleItem(_container.CreateItemAsync(item, new PartitionKey(id.ToString()))); 
         }
         if (response == null)
         {
@@ -99,7 +100,7 @@ public class Repository : IRepository, IDisposable
         return response; 
     }
 
-    public T AddOrUpdate<T>(T item, object partitionkey)
+    public ISingleResult<T> AddOrUpdate(T item, object partitionkey)
     {
         throw new NotImplementedException();
     }
@@ -133,20 +134,21 @@ public class Repository : IRepository, IDisposable
         return _container?.Id;
     }
 
-    public async Task<IList<ItemResponse<T>>?> AddRange<T>(IDictionary<PartitionKey, T> items)
+    public async Task<ICollectionResult<T>?> AddRange(IDictionary<PartitionKey, T> items)
     {
         if (items == null || !items.Any())
             return null;
 
-        var responses = new List<ItemResponse<T>>(); 
+        var responses = new List<ISingleResult<T>>(); 
         foreach (var item in items)
         {
-            responses.Add(await _container.CreateItemAsync(item.Value, item.Key));
-        }         
-        return responses; 
+            var createdItem = await SafeCallSingleItem(_container.CreateItemAsync(item.Value, item.Key));
+            responses.Add(createdItem); 
+        }
+        return BuildSearchResultCollection(responses); 
     }
 
-    public async Task<ItemResponse<T>> Remove<T>(PartitionKey? partitionKey = null, object? id = null)
+    public async Task<ISingleResult<T>?> Remove(PartitionKey? partitionKey = null, object? id = null)
     {
         if (id == null)
         {
@@ -156,14 +158,14 @@ public class Repository : IRepository, IDisposable
         {
             throw new ArgumentNullException(nameof(partitionKey)); 
         }
-        var response = await _container.DeleteItemAsync<T>(id.ToString(), partitionKey.Value);
+        var response = await SafeCallSingleItem(_container.DeleteItemAsync<T>(id.ToString(), partitionKey.Value));
         return response;
     }
 
-    public async Task<ItemResponse<T>> Get<T>(PartitionKey partitionKey, object? id = null)
+    public async Task<ISingleResult<T>?> Get(PartitionKey partitionKey, object? id = null)
     {
-        var item = await _container.ReadItemAsync<T>(id?.ToString(), partitionKey);
-        return item; 
+        var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKey));
+        return item;
     }
 
 }

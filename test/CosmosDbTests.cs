@@ -1,9 +1,8 @@
 using AzureCosmosDbRepositoryLib;
+using AzureCosmosDbRepositoryLib.Contracts;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
-using System.Diagnostics;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace AcceptanceTests;
 
@@ -27,12 +26,12 @@ public class CosmosDbTests : IDisposable
     //Afterwards, you should be able to run these tests using YOUR user secrets ! (connection to your database and container(s) !
     //This makes it possible to publish and push the source code to Github without revealing user secrets 
 
-    private IRepository? _repository;
+    private IRepository<TodoListItem>? _repository;
 
     private readonly string? _connectionString;
     private readonly IConfiguration? _configuration;
-    private readonly ITestOutputHelper _output; 
-        
+    private readonly ITestOutputHelper _output;
+
 
     public CosmosDbTests(ITestOutputHelper output)
     {
@@ -44,11 +43,11 @@ public class CosmosDbTests : IDisposable
             {
                 throw new ArgumentException("Need to have a connection string. This should be done via dotnet user secret! Run dotnet user-secrets init, then set the connection string. Read the guide in comments of this unit test!");
             }
-            _repository = new Repository("ToDoList", "Container1",
+            _repository = new Repository<TodoListItem>("ToDoList", "Container1",
                 connectionString: _connectionString);
         }
 
-        _output = output; 
+        _output = output;
 
     }
 
@@ -62,45 +61,47 @@ public class CosmosDbTests : IDisposable
             Task = $"Create an item at the following time: {DateTime.UtcNow}"
         };
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        ItemResponse<TodoListItem> response = Task.Run(async ()  =>  await _repository.Add(todoItem, id: todoItem.Id)).Result;
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository.Add(todoItem, id: todoItem.Id)).Result;
+
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+        response?.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
         string? resultText = $"Acceptance test passed. Could create a new item in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()}";
 
         _output.WriteLine(resultText);
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new PartitionKey(todoItem.Id), todoItem.Id));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+        responseDeletion!.Result!.StatusCode?.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
 
-    [Fact] 
+    [Fact]
     public void AddGetDeleteItemFromContainer_Succeeds()
     {
         var todoItem = new TodoListItem
         {
             Id = Guid.NewGuid().ToString(),
             Priority = 100,
-            Task = $"Create an item at the following time: {DateTime.UtcNow}"
+            Task = "Create an item at the following time: " + $"{DateTime.UtcNow}"
         };
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-        ItemResponse<TodoListItem> response = Task.Run(async () => await _repository.Add(todoItem, id: todoItem.Id)).Result;
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+
+
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem, id: todoItem.Id)).Result;
+
+        response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
         string? resultText = $"Acceptance test passed. Could create a new item in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()}";
 
         _output.WriteLine(resultText);
 
         //try getting the item too 
 
-        var item = Task.Run(async () => await _repository!.Get<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id)).Result;
-        item.Resource.Id.Should().Be(todoItem.Id); 
+        var item = Task.Run(async () => await _repository!.Get(new PartitionKey(todoItem.Id), todoItem.Id)).Result;
+        item!.Item!.Id.Should().Be(todoItem.Id);
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new PartitionKey(todoItem.Id), todoItem.Id));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+        responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
 
     [Fact]
@@ -125,23 +126,23 @@ public class CosmosDbTests : IDisposable
         };
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        IList<ItemResponse<TodoListItem>>? responses = Task.Run(async () => await _repository.AddRange(todoList)).Result;
+        ICollectionResult<TodoListItem>? responses = Task.Run(async () => await _repository.AddRange(todoList)).Result;
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        responses?.All(r => r.StatusCode == System.Net.HttpStatusCode.Created).Should().BeTrue();
+        responses!.StatusCodes.All(r => r == System.Net.HttpStatusCode.Created).Should().BeTrue();
         string? resultText = $"Acceptance test passed. Could create a set of two new items in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()} Partition keys used: {string.Join(",", todoList.Select(t => t.Value?.Id?.ToString()))}";
         _output.WriteLine(resultText);
         //todo implement clean up (deleting items)
 
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new PartitionKey(todoItem.Id), todoItem.Id));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+        responseDeletion!.Result!.StatusCode!.Should().Be(System.Net.HttpStatusCode.NoContent);
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(anotherTodoItem.Id), anotherTodoItem.Id));
+        responseDeletion = Task.Run(async () => await _repository.Remove(new PartitionKey(anotherTodoItem.Id), anotherTodoItem.Id));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
-        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+        responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
 
     }
 
@@ -155,3 +156,4 @@ public class CosmosDbTests : IDisposable
         GC.SuppressFinalize(this);
     }
 }
+

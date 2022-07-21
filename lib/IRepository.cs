@@ -1,3 +1,4 @@
+using AzureCosmosDbRepositoryLib.Contracts;
 using Microsoft.Azure.Cosmos;
 
 namespace AzureCosmosDbRepositoryLib;
@@ -6,7 +7,7 @@ namespace AzureCosmosDbRepositoryLib;
 /// <summary>
 /// Repository pattern for Azure Cosmos DB
 /// </summary>
-public interface IRepository
+public interface IRepository<T>
 {
 
     /// <summary>
@@ -17,7 +18,7 @@ public interface IRepository
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ItemResponse<T>> Add<T>(T item, PartitionKey? partitionKey = null, object? id = null);
+    Task<ISingleResult<T>?> Add(T item, PartitionKey? partitionKey = null, object? id = null);
 
     /// <summary>
     /// Adds an item to container in DB. Param <paramref name="partitionKey"/> or param <paramref name="id"/> must be provided.
@@ -27,7 +28,7 @@ public interface IRepository
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ItemResponse<T>> Get<T>(PartitionKey partitionKey, object? id = null);
+    Task<ISingleResult<T>?> Get(PartitionKey partitionKey, object? id = null);
 
     /// <summary>
     /// Removes an item from container in DB. Param <paramref name="partitionKey"/> and param <paramref name="id"/> must be provided.
@@ -37,7 +38,7 @@ public interface IRepository
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ItemResponse<T>> Remove<T>(PartitionKey? partitionKey = null, object? id = null);
+    Task<ISingleResult<T>?> Remove(PartitionKey? partitionKey = null, object? id = null);
 
     /// <summary>
     /// Adds a set of items to container in DB. A shared partitionkey is used and the items are added inside a transaction as a single operation.
@@ -46,9 +47,9 @@ public interface IRepository
     /// <param name="items"></param>
     /// <param name="partitionKey"></param>
     /// <returns></returns>
-    Task<IList<ItemResponse<T>>?> AddRange<T>(IDictionary<PartitionKey, T> items);
+    Task<ICollectionResult<T>?> AddRange(IDictionary<PartitionKey, T> items);
 
-    T AddOrUpdate<T>(T item, object partitionkey);
+    ISingleResult<T>? AddOrUpdate(T item, object partitionkey);
 
     void Dispose();
 
