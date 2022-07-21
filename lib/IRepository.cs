@@ -28,7 +28,7 @@ public interface IRepository<T>
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ISingleResult<T>?> Get(PartitionKey partitionKey, object? id = null);
+    Task<ISingleResult<T>?> Get(object? id = null, PartitionKey? partitionKey = null);
 
     /// <summary>
     /// Removes an item from container in DB. Param <paramref name="partitionKey"/> and param <paramref name="id"/> must be provided.
@@ -38,7 +38,7 @@ public interface IRepository<T>
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ISingleResult<T>?> Remove(PartitionKey? partitionKey = null, object? id = null);
+    Task<ISingleResult<T>?> Remove(object? id = null, PartitionKey? partitionKey = null);
 
     /// <summary>
     /// Adds a set of items to container in DB. A shared partitionkey is used and the items are added inside a transaction as a single operation.

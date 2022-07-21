@@ -1,5 +1,6 @@
 ﻿using AzureCosmosDbRepositoryLib.Contracts;
 using Microsoft.Azure.Cosmos;
+using Newtonsoft.Json;
 using System.Diagnostics;
 
 namespace AzureCosmosDbRepositoryLib
@@ -65,6 +66,44 @@ namespace AzureCosmosDbRepositoryLib
             resultingResponse.PageSize = searchResults.Count; 
             //TODO: need to also supporting paging scenario for larger data sets 
             return resultingResponse;   
+        }
+
+        /// <summary>
+        /// Returns default partition key for item. The type <typeparamref name="T"/> of item must have a property with JsonProperty attribute and set its property to 'id' to signal that property is the id of the item. Azure cosmos db requires identifiable objects 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public PartitionKey? GetDefaultPartitionKey(T item)
+        {
+            if (item == null)
+                return null;
+            var propWithJsonPropertyIdAttribute = typeof(T).GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+                .FirstOrDefault(p => p.GetCustomAttributes(typeof(JsonArrayAttribute), true).Any() && (p.GetCustomAttributes(typeof(JsonArrayAttribute), true).First() as JsonArrayAttribute)?.Id == "id");
+
+            if (propWithJsonPropertyIdAttribute != null)
+            {
+                var idValue = propWithJsonPropertyIdAttribute.GetValue(item, null);
+                if (idValue != null)
+                {
+                    return new PartitionKey(idValue.ToString()); 
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Returns default partition key for item. The type <typeparamref name="T"/> of item must have a property with JsonProperty attribute and set its property to 'id' to signal that property is the id of the item. Azure cosmos db requires identifiable objects 
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="item"></param>
+        /// <returns></returns>
+        public PartitionKey? GetDefaultPartitionKeyFromId(object? id)
+        {
+            if (id == null)
+                return null;
+            return new PartitionKey(id.ToString()); 
         }
 
 

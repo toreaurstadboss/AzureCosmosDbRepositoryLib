@@ -83,7 +83,6 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
 
     public async Task<ISingleResult<T>?> Add(T item, PartitionKey? partitionKey = null, object? id = null)
     {
-
         ISingleResult<T>? response = null; 
         if (partitionKey != null)
         {
@@ -148,23 +147,27 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
         return BuildSearchResultCollection(responses); 
     }
 
-    public async Task<ISingleResult<T>?> Remove(PartitionKey? partitionKey = null, object? id = null)
+    public async Task<ISingleResult<T>?> Remove(object? id = null, PartitionKey? partitionKey = null)
     {
-        if (id == null)
-        {
-            throw new ArgumentNullException(nameof(id)); 
-        }
-        if (partitionKey == null)
+        var partitionKeyResolved = partitionKey ?? GetDefaultPartitionKeyFromId(id);
+        if (partitionKeyResolved == null)
+            return null;
+        
+        if (partitionKeyResolved == null)
         {
             throw new ArgumentNullException(nameof(partitionKey)); 
         }
-        var response = await SafeCallSingleItem(_container.DeleteItemAsync<T>(id.ToString(), partitionKey.Value));
+        var response = await SafeCallSingleItem(_container.DeleteItemAsync<T>(id!.ToString(), partitionKeyResolved.Value));
         return response;
     }
 
-    public async Task<ISingleResult<T>?> Get(PartitionKey partitionKey, object? id = null)
+    public async Task<ISingleResult<T>?> Get(object? id = null, PartitionKey? partitionKey = null)
     {
-        var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKey));
+        var partitionKeyResolved = partitionKey ?? GetDefaultPartitionKeyFromId(id);
+        if (partitionKeyResolved == null)
+            return null; 
+
+        var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKeyResolved.Value));
         return item;
     }
 
