@@ -75,6 +75,34 @@ public class CosmosDbTests : IDisposable
         responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
 
+    [Fact] 
+    public void AddGetDeleteItemFromContainer_Succeeds()
+    {
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = $"Create an item at the following time: {DateTime.UtcNow}"
+        };
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        ItemResponse<TodoListItem> response = Task.Run(async () => await _repository.Add(todoItem, id: todoItem.Id)).Result;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+        string? resultText = $"Acceptance test passed. Could create a new item in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()}";
+
+        _output.WriteLine(resultText);
+
+        //try getting the item too 
+
+        var item = Task.Run(async () => await _repository!.Get<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id)).Result;
+        item.Resource.Id.Should().Be(todoItem.Id); 
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        var responseDeletion = Task.Run(async () => await _repository.Remove<TodoListItem>(new PartitionKey(todoItem.Id), todoItem.Id));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        responseDeletion.Result.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+    }
+
     [Fact]
     public void AddItemsAndRemoveItemsFromContainer_Succeeds()
     {

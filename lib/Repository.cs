@@ -7,6 +7,9 @@ namespace AzureCosmosDbRepositoryLib;
 /// </summary>
 public class Repository : IRepository, IDisposable 
 {
+    //TODO: use partitionkeypath to infer how to build up partition keys implicitly
+    //TODO: change implementation into a generic implementation 
+    //TODO: move out some logic into helper class to automatically create database and container if needed.. (single responsobility)
 
     private readonly string? _databaseName;
     private readonly string? _containerId;
@@ -156,4 +159,11 @@ public class Repository : IRepository, IDisposable
         var response = await _container.DeleteItemAsync<T>(id.ToString(), partitionKey.Value);
         return response;
     }
+
+    public async Task<ItemResponse<T>> Get<T>(PartitionKey partitionKey, object? id = null)
+    {
+        var item = await _container.ReadItemAsync<T>(id?.ToString(), partitionKey);
+        return item; 
+    }
+
 }
