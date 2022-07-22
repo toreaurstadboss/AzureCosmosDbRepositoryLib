@@ -16,9 +16,9 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
 
     private readonly string? _databaseName;
     private readonly string? _containerId;
-    private CosmosClient _client;
-    private readonly Database _database;
-    private readonly Container _container;
+    private CosmosClient _client = null!;
+    private Database _database = null!;
+    private Container _container = null!;
     private readonly CosmosClientOptions? _cosmosClientOptions;
     private readonly string? _partitionKeyPath;
     private string? _connectionString; 
@@ -44,44 +44,23 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
     {
         if (connectionString == null)
         {
-            throw new ArgumentException($"The connection string inside {nameof(connectionString)} must be non-null when passed into this repository"); 
+            throw new ArgumentException($"The connection string inside {nameof(connectionString)} must be non-null when passed into this repository");
         }
-        _connectionString = connectionString; 
+        _connectionString = connectionString;
         _databaseName = databaseName;
         _containerId = containerId;
-        _partitionKeyPath = partitionKeyPath; 
+        _partitionKeyPath = partitionKeyPath;
         _cosmosClientOptions = clientOptions;
 
         if (string.IsNullOrWhiteSpace(_databaseName) || string.IsNullOrWhiteSpace(_containerId))
         {
-            throw new ArgumentException($"Must have both {nameof(databaseName)} and {nameof(containerId)} set before running any operations against these!"); 
+            throw new ArgumentException($"Must have both {nameof(databaseName)} and {nameof(containerId)} set before running any operations against these!");
         }
 
-
-        _client = clientOptions == null ?
-            defaultToUsingGateway ?
-            new CosmosClient(_connectionString, new CosmosClientOptions
-            {
-                ConnectionMode = ConnectionMode.Gateway //this is the connection mode that works best in intranet-environments and should be considered as best compatible approach to avoid firewall issues
-            }) :
-            new CosmosClient(_connectionString) :
-            new CosmosClient(_connectionString, _cosmosClientOptions); 
-
-        //Run initialization 
-        if (throughputPropertiesForDatabase == null)
-        {
-            _database = Task.Run(async () => await _client.CreateDatabaseIfNotExistsAsync(_databaseName)).Result; //create the database if not existing (will go for default options regarding scaling)
-        }
-        else
-        {
-            _database = Task.Run(async () => await _client.CreateDatabaseIfNotExistsAsync(_databaseName, throughputPropertiesForDatabase)).Result; //create the database if not existing - specify specific through put options
-        }
-
-        // The container we will create.  
-        _container =  Task.Run(async () =>  await _database.CreateContainerIfNotExistsAsync(_containerId, _partitionKeyPath)).Result;
+        InitializeDatabaseAndContainer(clientOptions, throughputPropertiesForDatabase, defaultToUsingGateway);
 
     }
-
+    
 
     public async Task<ISingleResult<T>?> Add(T item, PartitionKey? partitionKey = null, object? id = null)
     {
@@ -110,30 +89,7 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }
-
-    private void Dispose(bool isdisposing)
-    {
-        if (isdisposing)
-        {
-            if (_client != null)
-            {
-                _client.Dispose(); 
-            }
-            _client = null!;
-            _connectionString = null!; 
-        }
-    }
-
-    public string? GetDatabaseName()
-    {
-        return _database?.Id;
-    }
-
-    public string? GetContainerId()
-    {
-        return _container?.Id;
-    }
+    }   
 
     public async Task<ICollectionResult<T>?> AddRange(IDictionary<PartitionKey, T> items)
     {
@@ -197,6 +153,58 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
             return await Task.FromResult(BuildSearchResultCollection(err));
         }
         return await Task.FromResult<ICollectionResult<T>?>(null);
+    }
+
+    public string? GetDatabaseName()
+    {
+        return _database?.Id;
+    }
+
+    public string? GetContainerId()
+    {
+        return _container?.Id;
+    }
+
+    #region Initialization 
+
+    private void InitializeDatabaseAndContainer(CosmosClientOptions? clientOptions, ThroughputProperties? throughputPropertiesForDatabase, bool defaultToUsingGateway)
+    {
+        _client = clientOptions == null ?
+            defaultToUsingGateway ?
+            new CosmosClient(_connectionString, new CosmosClientOptions
+            {
+                ConnectionMode = ConnectionMode.Gateway //this is the connection mode that works best in intranet-environments and should be considered as best compatible approach to avoid firewall issues
+            }) :
+            new CosmosClient(_connectionString) :
+            new CosmosClient(_connectionString, _cosmosClientOptions);
+
+        //Run initialization 
+        if (throughputPropertiesForDatabase == null)
+        {
+            _database = Task.Run(async () => await _client.CreateDatabaseIfNotExistsAsync(_databaseName)).Result; //create the database if not existing (will go for default options regarding scaling)
+        }
+        else
+        {
+            _database = Task.Run(async () => await _client.CreateDatabaseIfNotExistsAsync(_databaseName, throughputPropertiesForDatabase)).Result; //create the database if not existing - specify specific through put options
+        }
+
+        // The container we will create.  
+        _container = Task.Run(async () => await _database.CreateContainerIfNotExistsAsync(_containerId, _partitionKeyPath)).Result;
+    }
+
+    #endregion
+
+    private void Dispose(bool isdisposing)
+    {
+        if (isdisposing)
+        {
+            if (_client != null)
+            {
+                _client.Dispose();
+            }
+            _client = null!;
+            _connectionString = null!;
+        }
     }
 
 }
