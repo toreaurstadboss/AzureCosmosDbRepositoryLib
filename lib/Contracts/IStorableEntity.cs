@@ -9,5 +9,7 @@ namespace AzureCosmosDbRepositoryLib.Contracts
         string Id { get; set; }
 
         PartitionKey? PartitionKey { get; }
+
+        DateTime? LastUpdate { get; set; }
     }
 }

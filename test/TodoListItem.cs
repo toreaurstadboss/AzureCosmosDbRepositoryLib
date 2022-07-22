@@ -18,6 +18,8 @@ public partial class TodoListItem : IStorableEntity
 
     public Schedule? Timing { get; set; }
 
+    public DateTime? LastUpdate { get; set; }
+
     public override string ToString()
     {
         return $"Id: {Id} Task: {Task} Priority: {Priority}";

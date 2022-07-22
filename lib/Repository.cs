@@ -1,6 +1,7 @@
 ﻿using AzureCosmosDbRepositoryLib.Contracts;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
+using Newtonsoft.Json;
 using System.Diagnostics;
 
 namespace AzureCosmosDbRepositoryLib;
@@ -22,7 +23,7 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
     private readonly CosmosClientOptions? _cosmosClientOptions;
     private readonly string? _partitionKeyPath;
     private string? _connectionString;
-    private readonly int _bugdetResourceUnitsPerSecond;
+    //private readonly int _bugdetResourceUnitsPerSecond;
 
 
     /// <summary>
@@ -43,15 +44,15 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         string partitionKeyPath = "/id",
         ThroughputProperties? throughputPropertiesForDatabase = null,
         string? connectionString = null,
-        bool defaultToUsingGateway = true,
-        int bugdetResourceUnitsPerSecond = 400)
+        bool defaultToUsingGateway = true)
+        //int bugdetResourceUnitsPerSecond = 400)
     {
         if (connectionString == null)
         {
             throw new ArgumentException($"The connection string inside {nameof(connectionString)} must be non-null when passed into this repository");
         }
         _connectionString = connectionString;
-        _bugdetResourceUnitsPerSecond = bugdetResourceUnitsPerSecond;
+        //_bugdetResourceUnitsPerSecond = bugdetResourceUnitsPerSecond;
         _databaseName = databaseName;
         _containerId = containerId;
         _partitionKeyPath = partitionKeyPath;
@@ -68,12 +69,14 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
 
     public async Task<ISingleResult<T>?> Add(T item)
     {
+        item.LastUpdate = DateTime.UtcNow;
         ISingleResult<T>? response = await SafeCallSingleItem(_container.CreateItemAsync(item, item.PartitionKey)); 
         return response; 
     }
 
     public async Task<ISingleResult<T>?> AddOrUpdate(T item)
     {
+        item.LastUpdate = DateTime.UtcNow; 
         ISingleResult<T>? response = await SafeCallSingleItem(_container.UpsertItemAsync(item, item.PartitionKey));    
         return response;
     }
@@ -92,6 +95,7 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         var responses = new List<ISingleResult<T>>(); 
         foreach (var item in items)
         {
+            item.Value.LastUpdate = DateTime.UtcNow; 
             var createdItem = await SafeCallSingleItem(_container.CreateItemAsync(item.Value, item.Key));
             responses.Add(createdItem); 
         }
@@ -120,6 +124,25 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
 
         var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKeyResolved.Value));
         return item;
+    }
+
+    public async Task<IPaginatedResult<T>?> GetPaginatedResult(int pageSize, string? continuationToken = null, bool sortDescending = false)
+    {        
+        var query = new QueryDefinition($"SELECT * FROM c ORDER BY c.LastUpdate {(sortDescending ? "DESC" : "ASC")}".Trim()); //default query - will filter to type T via 'ItemQueryIterator<T>' 
+        var queryRequestOptions = new QueryRequestOptions
+        {
+            MaxItemCount = pageSize
+        };
+        var queryResultSetIterator = _container.GetItemQueryIterator<T>(query, requestOptions: queryRequestOptions,
+            continuationToken: continuationToken);
+        var result = queryResultSetIterator.HasMoreResults ? await queryResultSetIterator.ReadNextAsync() : null;
+        if (result == null)
+            return null!; 
+
+        var sourceContinuationToken = result.ContinuationToken;
+        var paginatedResult = new PaginatedResult<T>(sourceContinuationToken, result.Resource);
+        return paginatedResult; 
+
     }
 
     public async Task<ICollectionResult<T>?> Find(ISearchRequest<T>? searchRequest)

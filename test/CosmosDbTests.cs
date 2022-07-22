@@ -8,10 +8,13 @@ namespace AcceptanceTests;
 
 public class CosmosDbTestsFixture : IClassFixture<CosmosDbTests>
 {
-#pragma warning disable IDE0060 // Remove unused parameter
+
     public CosmosDbTestsFixture(CosmosDbTests data)
-#pragma warning restore IDE0060 // Remove unused parameter
     {
+        if (data != null)
+        {
+
+        }
 
     }
 }
@@ -48,6 +51,57 @@ public class CosmosDbTests : IDisposable
         }
 
         _output = output;
+
+    }
+
+    [Fact]
+    public void AddThreeAndGetPagingatedResultsAndDelete_Succeeds()
+    {
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = $"Create an item at the following time: {DateTime.UtcNow}",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
+        };
+        var anotherTodoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = $"Create another item at the following time: {DateTime.UtcNow}",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
+        };
+        var yetAnotherTodoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = $"Create yet another item at the following time: {DateTime.UtcNow}",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
+        };
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem)).Result;
+        response = Task.Run(async () => await _repository!.Add(anotherTodoItem)).Result;
+        response = Task.Run(async () => await _repository!.Add(yetAnotherTodoItem)).Result;
+
+
+        IPaginatedResult<TodoListItem>? paginatedResultFirstPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: null, sortDescending: true)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultSecondPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultFirstPage!.ContinuationToken, sortDescending: true)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultThirdPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultSecondPage!.ContinuationToken, sortDescending: true)).Result;
+
+        paginatedResultFirstPage!.Items.Should().NotBeEmpty();
+        paginatedResultSecondPage!.Items.Should().NotBeEmpty();
+        paginatedResultThirdPage!.Items.Should().NotBeEmpty(); //for now we just check if we got a non-empty page content here - which seems to work ok
 
     }
 
