@@ -61,7 +61,7 @@ public class CosmosDbTests : IDisposable
             Task = $"Create an item at the following time: {DateTime.UtcNow}"
         };
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository.Add(todoItem, id: todoItem.Id)).Result;
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository.Add(todoItem)).Result;
 
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         response?.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
@@ -86,7 +86,7 @@ public class CosmosDbTests : IDisposable
         };
 
 
-        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem, id: todoItem.Id)).Result;
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem)).Result;
 
         response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
         string? resultText = $"Acceptance test passed. Could create a new item in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()}";
@@ -105,6 +105,41 @@ public class CosmosDbTests : IDisposable
     }
 
     [Fact]
+    public void AddUpdateGetDeleteItemFromContainer_Succeeds()
+    {
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 400,
+            Task = "Create item at the following time: " + $"{DateTime.UtcNow}. Will be updated"
+        };
+
+
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem)).Result;
+
+        response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+        string? resultText = $"Acceptance test passed. Could create a new item in remote Azure Cosmos DB container. DB: {_repository?.GetDatabaseName()} ContainerId: {_repository?.GetContainerId()}";
+
+        _output.WriteLine(resultText);
+
+        todoItem.Task = "Updated task contents: " + $"{DateTime.UtcNow}"; 
+        ISingleResult<TodoListItem>? responseUpdate = Task.Run(async () => await _repository!.AddOrUpdate(todoItem)).Result;
+
+
+        //try getting the item too after updating it 
+
+        var item = Task.Run(async () => await _repository!.Get(todoItem.Id)).Result;
+        item!.Item!.Id.Should().Be(todoItem.Id);
+
+        item!.Item!.Task.Should().Be(todoItem.Task); 
+
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+        var responseDeletion = Task.Run(async () => await _repository.Remove(todoItem.Id));
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+        responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public void AddFindDeleteFromContainer_Succeeds()
     {
         string pattern = "LOOK FOR THIS ITEM ###: "; 
@@ -115,7 +150,7 @@ public class CosmosDbTests : IDisposable
             Task = pattern + $"{DateTime.UtcNow}"
         };
 
-        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem, id: todoItem.Id)).Result;
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem)).Result;
 
         var anotherTodoItem = new TodoListItem
         {
@@ -124,7 +159,7 @@ public class CosmosDbTests : IDisposable
             Task = pattern + $"{DateTime.UtcNow}"
         };
 
-        ISingleResult<TodoListItem>? responseSecond = Task.Run(async () => await _repository!.Add(anotherTodoItem, id: anotherTodoItem.Id)).Result;
+        ISingleResult<TodoListItem>? responseSecond = Task.Run(async () => await _repository!.Add(anotherTodoItem)).Result;
 
         response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
         responseSecond!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
@@ -137,7 +172,8 @@ public class CosmosDbTests : IDisposable
         };
 
         ICollectionResult<TodoListItem>? items = Task.Run(async () => await _repository!.Find(searchRequest)).Result;
-        items!.Items.All(x => x.Task!.StartsWith(pattern)); 
+        var itemsAllMatch = items!.Items.All(x => x.Task!.StartsWith(pattern));
+        itemsAllMatch.Should().BeTrue(); 
 
         var responseDeletion = Task.Run(async () => await _repository!.Remove(todoItem.Id));
         responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);

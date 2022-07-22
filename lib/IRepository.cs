@@ -18,7 +18,7 @@ public interface IRepository<T>
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ISingleResult<T>?> Add(T item, PartitionKey? partitionKey = null, object? id = null);
+    Task<ISingleResult<T>?> Add(T item);
 
     /// <summary>
     /// Adds an item to container in DB. Param <paramref name="partitionKey"/> or param <paramref name="id"/> must be provided.
@@ -56,7 +56,7 @@ public interface IRepository<T>
     /// <returns></returns>
     Task<ICollectionResult<T>?> AddRange(IDictionary<PartitionKey, T> items);
 
-    ISingleResult<T>? AddOrUpdate(T item, object partitionkey);
+    Task<ISingleResult<T>?> AddOrUpdate(T item);
 
     void Dispose();
 

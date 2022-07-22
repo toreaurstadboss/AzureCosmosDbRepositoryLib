@@ -87,8 +87,10 @@ namespace AzureCosmosDbRepositoryLib
 
         public ICollectionResult<T> BuildSearchResultCollection(Exception err)
         {
-            var resultingResponse = new CollectionResult<T>();
-            resultingResponse.ErrorMessage = err.ToString(); 
+            var resultingResponse = new CollectionResult<T>
+            {
+                ErrorMessage = err.ToString()
+            };
             return resultingResponse;
         }
 

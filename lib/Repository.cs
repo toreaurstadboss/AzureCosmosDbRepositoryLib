@@ -8,7 +8,7 @@ namespace AzureCosmosDbRepositoryLib;
 /// <summary>
 /// Implements a repository pattern for a container in Azure Cosmos DB
 /// </summary>
-public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable 
+public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable where T : IStorableEntity
 {
     //TODO: use partitionkeypath to infer how to build up partition keys implicitly
     //TODO: change implementation into a generic implementation 
@@ -58,31 +58,19 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
         }
 
         InitializeDatabaseAndContainer(clientOptions, throughputPropertiesForDatabase, defaultToUsingGateway);
-
     }
     
 
-    public async Task<ISingleResult<T>?> Add(T item, PartitionKey? partitionKey = null, object? id = null)
+    public async Task<ISingleResult<T>?> Add(T item)
     {
-        ISingleResult<T>? response = null; 
-        if (partitionKey != null)
-        {
-            response = await SafeCallSingleItem(_container.CreateItemAsync(item, partitionKey)); 
-        }
-        if (id != null)
-        {
-            response = await SafeCallSingleItem(_container.CreateItemAsync(item, new PartitionKey(id.ToString()))); 
-        }
-        if (response == null)
-        {
-            throw new ArgumentException("Adding the item threw an exception. To properly identify a row, either give a non-null partition key or a non-null id value! This is required to be able to later delete or update a row.");
-        }
+        ISingleResult<T>? response = await SafeCallSingleItem(_container.CreateItemAsync(item, item.PartitionKey)); 
         return response; 
     }
 
-    public ISingleResult<T> AddOrUpdate(T item, object partitionkey)
+    public async Task<ISingleResult<T>?> AddOrUpdate(T item)
     {
-        throw new NotImplementedException();
+        ISingleResult<T>? response = await SafeCallSingleItem(_container.UpsertItemAsync(item, item.PartitionKey));    
+        return response;
     }
 
     public void Dispose()
@@ -137,15 +125,13 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
         var stopWatch = Stopwatch.StartNew(); 
         try
         {
-            using (var feedIterator = linqQueryable.Where(searchRequest.Filter).ToFeedIterator())
+            using var feedIterator = linqQueryable.Where(searchRequest.Filter).ToFeedIterator();
+            while (feedIterator.HasMoreResults)
             {
-                while (feedIterator.HasMoreResults)
-                {
-                    var items = await feedIterator.ReadNextAsync();
-                    var result = BuildSearchResultCollection(items.Resource);
-                    result.ExecutionTimeInMs = stopWatch.ElapsedMilliseconds;
-                    return result; 
-                }
+                var items = await feedIterator.ReadNextAsync();
+                var result = BuildSearchResultCollection(items.Resource);
+                result.ExecutionTimeInMs = stopWatch.ElapsedMilliseconds;
+                return result;
             }
         }
         catch (Exception err)
