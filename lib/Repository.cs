@@ -21,9 +21,10 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
     private Container _container = null!;
     private readonly CosmosClientOptions? _cosmosClientOptions;
     private readonly string? _partitionKeyPath;
-    private string? _connectionString; 
+    private string? _connectionString;
+    private readonly int _bugdetResourceUnitsPerSecond;
 
-    
+
     /// <summary>
     /// Generic repository for Azure Cosmos DB. Requires some of the parameters set here to function
     /// </summary>
@@ -33,6 +34,8 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
     /// <param name="partitionKeyPath"></param>
     /// <param name="throughputPropertiesForDatabase"></param>
     /// <param name="connectionString">required</param>
+    /// <param name="defaultToUsingGateway">Default using Gateway to avoid intranet firewall issues</param>
+    /// <param name="bugdetResourceUnitsPerSecond">Default using resource units per second budget of 400 RU/s. Adjust this if desired. Will affect queries spending too much RU/s.</param>
     /// <exception cref="ArgumentNullException"></exception>
     /// <exception cref="ArgumentException"></exception>
     public Repository(string databaseName, string containerId,
@@ -40,13 +43,15 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         string partitionKeyPath = "/id",
         ThroughputProperties? throughputPropertiesForDatabase = null,
         string? connectionString = null,
-        bool defaultToUsingGateway = true)
+        bool defaultToUsingGateway = true,
+        int bugdetResourceUnitsPerSecond = 400)
     {
         if (connectionString == null)
         {
             throw new ArgumentException($"The connection string inside {nameof(connectionString)} must be non-null when passed into this repository");
         }
         _connectionString = connectionString;
+        _bugdetResourceUnitsPerSecond = bugdetResourceUnitsPerSecond;
         _databaseName = databaseName;
         _containerId = containerId;
         _partitionKeyPath = partitionKeyPath;
