@@ -2,9 +2,9 @@
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
 
-namespace AcceptanceTests; 
+namespace AcceptanceTests;
 
-public class TodoListItem : IStorableEntity
+public partial class TodoListItem : IStorableEntity
 {
 
     [JsonProperty("id")]
@@ -14,7 +14,9 @@ public class TodoListItem : IStorableEntity
 
     public int Priority { get; set; }
 
-    public PartitionKey? PartitionKey => new PartitionKey(Id); 
+    public PartitionKey? PartitionKey => new PartitionKey(Id);
+
+    public Schedule? Timing { get; set; }
 
     public override string ToString()
     {

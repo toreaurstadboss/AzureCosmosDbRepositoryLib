@@ -58,7 +58,12 @@ public class CosmosDbTests : IDisposable
         {
             Id = Guid.NewGuid().ToString(),
             Priority = 100,
-            Task = $"Create an item at the following time: {DateTime.UtcNow}"
+            Task = $"Create an item at the following time: {DateTime.UtcNow}",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
         };
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
         ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository.Add(todoItem)).Result;

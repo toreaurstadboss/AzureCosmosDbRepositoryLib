@@ -26,6 +26,7 @@ namespace AzureCosmosDbRepositoryLib.Contracts
         public IList<T> Items { get; private set; }
         public string? ErrorMessage { get; set; }
         public long ExecutionTimeInMs { get; set; }
+        public double RequestCharge { get; set; }
 
         public IList<HttpStatusCode?> StatusCodes { get; private set; }
     }

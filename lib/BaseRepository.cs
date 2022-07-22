@@ -18,6 +18,7 @@ namespace AzureCosmosDbRepositoryLib
                 searchResult.Item = result.Resource;
                 searchResult.ExecutionTimeInMs = stopwatch.ElapsedMilliseconds; 
                 searchResult.StatusCode = result.StatusCode;
+                searchResult.RequestCharge = result.RequestCharge; 
             }
             catch (CosmosException err)
             {
@@ -38,6 +39,7 @@ namespace AzureCosmosDbRepositoryLib
                     searchResult.Items.Add(item.Resource);
                 }
                 searchResult.ExecutionTimeInMs = stopwatch.ElapsedMilliseconds;
+                searchResult.RequestCharge = results.Sum(r => r.RequestCharge);                 
             }
             catch (CosmosException err)
             {
@@ -49,6 +51,7 @@ namespace AzureCosmosDbRepositoryLib
         public ICollectionResult<T> BuildSearchResultCollection(IList<ISingleResult<T>> searchResults)
         {
             var resultingResponse = new CollectionResult<T>();
+            resultingResponse.RequestCharge = 0;
             foreach (var item in searchResults)
             {
                 if (item != null && item.Item != null)
@@ -58,7 +61,8 @@ namespace AzureCosmosDbRepositoryLib
                         resultingResponse.ErrorMessage += item.ErrorMessage; 
                     }
                     resultingResponse.Items.Add(item.Item);
-                    resultingResponse.StatusCodes.Add(item.StatusCode); 
+                    resultingResponse.StatusCodes.Add(item.StatusCode);
+                    resultingResponse.RequestCharge += item.RequestCharge; 
                 }
             }
             resultingResponse.TotalCount = searchResults.Count;
@@ -71,6 +75,7 @@ namespace AzureCosmosDbRepositoryLib
         public ICollectionResult<T> BuildSearchResultCollection(IEnumerable<T> searchResults)
         {
             var resultingResponse = new CollectionResult<T>();
+            resultingResponse.RequestCharge = 0;
             foreach (var item in searchResults)
             {
                 if (item != null && item != null)
@@ -104,12 +109,13 @@ namespace AzureCosmosDbRepositoryLib
         }
 
         /// <summary>
+        /// This helper method can be used in cased using something other than IStorableEntity interface. We must have a property decorated with Json Attribute set to 'id' anyways for using it with Azure Cosmos DB. 
         /// Returns default partition key for item. The type <typeparamref name="T"/> of item must have a property with JsonProperty attribute and set its property to 'id' to signal that property is the id of the item. Azure cosmos db requires identifiable objects 
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="item"></param>
         /// <returns></returns>
-        public PartitionKey? GetDefaultPartitionKey(T item)
+        public PartitionKey? GetDefaultPartitionKeyFromAttribute(T item)
         {
             if (item == null)
                 return null;

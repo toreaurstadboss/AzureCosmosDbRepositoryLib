@@ -6,5 +6,6 @@ namespace AzureCosmosDbRepositoryLib.Contracts
     {
         string? ErrorMessage { get; set; }
         long ExecutionTimeInMs { get; set; }
+        double RequestCharge { get; set; }
     }
 }
