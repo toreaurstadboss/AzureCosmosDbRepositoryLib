@@ -68,6 +68,39 @@ namespace AzureCosmosDbRepositoryLib
             return resultingResponse;   
         }
 
+        public ICollectionResult<T> BuildSearchResultCollection(IEnumerable<T> searchResults)
+        {
+            var resultingResponse = new CollectionResult<T>();
+            foreach (var item in searchResults)
+            {
+                if (item != null && item != null)
+                {                   
+                    resultingResponse.Items.Add(item);
+                }
+            }
+            resultingResponse.TotalCount = searchResults.Count();
+            resultingResponse.PageIndex = 0;
+            resultingResponse.PageSize = searchResults.Count();
+            //TODO: need to also supporting paging scenario for larger data sets 
+            return resultingResponse;
+        }
+
+        public ICollectionResult<T> BuildSearchResultCollection(Exception err)
+        {
+            var resultingResponse = new CollectionResult<T>();
+            resultingResponse.ErrorMessage = err.ToString(); 
+            return resultingResponse;
+        }
+
+        public ISingleResult<T> BuildSearchResult(T searchResult)
+        {
+            return new SingleResult<T>
+            {
+                Item = searchResult
+
+            };
+        }
+
         /// <summary>
         /// Returns default partition key for item. The type <typeparamref name="T"/> of item must have a property with JsonProperty attribute and set its property to 'id' to signal that property is the id of the item. Azure cosmos db requires identifiable objects 
         /// </summary>

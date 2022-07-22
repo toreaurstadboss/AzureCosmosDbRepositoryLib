@@ -105,6 +105,48 @@ public class CosmosDbTests : IDisposable
     }
 
     [Fact]
+    public void AddFindDeleteFromContainer_Succeeds()
+    {
+        string pattern = "LOOK FOR THIS ITEM ###: "; 
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = pattern + $"{DateTime.UtcNow}"
+        };
+
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem, id: todoItem.Id)).Result;
+
+        var anotherTodoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = pattern + $"{DateTime.UtcNow}"
+        };
+
+        ISingleResult<TodoListItem>? responseSecond = Task.Run(async () => await _repository!.Add(anotherTodoItem, id: anotherTodoItem.Id)).Result;
+
+        response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+        responseSecond!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+
+        //try finding the items too 
+
+        var searchRequest = new SearchRequest<TodoListItem>
+        {
+            Filter = f => f.Task != null && f.Task.Contains(pattern) == true
+        };
+
+        ICollectionResult<TodoListItem>? items = Task.Run(async () => await _repository!.Find(searchRequest)).Result;
+        items!.Items.All(x => x.Task!.StartsWith(pattern)); 
+
+        var responseDeletion = Task.Run(async () => await _repository!.Remove(todoItem.Id));
+        responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+
+        var responseDeletionSecond = Task.Run(async () => await _repository!.Remove(anotherTodoItem.Id));
+        responseDeletionSecond!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public void AddItemsAndRemoveItemsFromContainer_Succeeds()
     {
         var todoItem = new TodoListItem

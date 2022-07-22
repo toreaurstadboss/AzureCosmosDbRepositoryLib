@@ -31,6 +31,13 @@ public interface IRepository<T>
     Task<ISingleResult<T>?> Get(object? id = null, PartitionKey? partitionKey = null);
 
     /// <summary>
+    /// Searches for a given item by given <paramref name="searchRequest"/>.
+    /// </summary>
+    /// <param name="searchRequest"></param>
+    /// <returns></returns>
+    Task<ICollectionResult<T>?> Find(ISearchRequest<T> searchRequest); 
+
+    /// <summary>
     /// Removes an item from container in DB. Param <paramref name="partitionKey"/> and param <paramref name="id"/> must be provided.
     /// </summary>
     /// <typeparam name="T"></typeparam>

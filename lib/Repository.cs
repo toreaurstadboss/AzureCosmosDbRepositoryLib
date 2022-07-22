@@ -1,5 +1,7 @@
 ﻿using AzureCosmosDbRepositoryLib.Contracts;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
+using System.Diagnostics;
 
 namespace AzureCosmosDbRepositoryLib;
 
@@ -169,6 +171,32 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable
 
         var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKeyResolved.Value));
         return item;
+    }
+
+    public async Task<ICollectionResult<T>?> Find(ISearchRequest<T>? searchRequest)
+    {
+        if (searchRequest?.Filter == null)
+            return await Task.FromResult<ICollectionResult<T>?>(null);
+        var linqQueryable = _container.GetItemLinqQueryable<T>();
+        var stopWatch = Stopwatch.StartNew(); 
+        try
+        {
+            using (var feedIterator = linqQueryable.Where(searchRequest.Filter).ToFeedIterator())
+            {
+                while (feedIterator.HasMoreResults)
+                {
+                    var items = await feedIterator.ReadNextAsync();
+                    var result = BuildSearchResultCollection(items.Resource);
+                    result.ExecutionTimeInMs = stopWatch.ElapsedMilliseconds;
+                    return result; 
+                }
+            }
+        }
+        catch (Exception err)
+        {
+            return await Task.FromResult(BuildSearchResultCollection(err));
+        }
+        return await Task.FromResult<ICollectionResult<T>?>(null);
     }
 
 }
