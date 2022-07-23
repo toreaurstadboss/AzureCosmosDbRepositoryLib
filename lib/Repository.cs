@@ -45,7 +45,7 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         ThroughputProperties? throughputPropertiesForDatabase = null,
         string? connectionString = null,
         bool defaultToUsingGateway = true)
-        //int bugdetResourceUnitsPerSecond = 400)
+    //int bugdetResourceUnitsPerSecond = 400)
     {
         if (connectionString == null)
         {
@@ -65,19 +65,19 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
 
         InitializeDatabaseAndContainer(clientOptions, throughputPropertiesForDatabase, defaultToUsingGateway);
     }
-    
+
 
     public async Task<ISingleResult<T>?> Add(T item)
     {
         item.LastUpdate = DateTime.UtcNow;
-        ISingleResult<T>? response = await SafeCallSingleItem(_container.CreateItemAsync(item, item.PartitionKey)); 
-        return response; 
+        ISingleResult<T>? response = await SafeCallSingleItem(_container.CreateItemAsync(item, item.PartitionKey));
+        return response;
     }
 
     public async Task<ISingleResult<T>?> AddOrUpdate(T item)
     {
-        item.LastUpdate = DateTime.UtcNow; 
-        ISingleResult<T>? response = await SafeCallSingleItem(_container.UpsertItemAsync(item, item.PartitionKey));    
+        item.LastUpdate = DateTime.UtcNow;
+        ISingleResult<T>? response = await SafeCallSingleItem(_container.UpsertItemAsync(item, item.PartitionKey));
         return response;
     }
 
@@ -85,21 +85,21 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
     {
         Dispose(true);
         GC.SuppressFinalize(this);
-    }   
+    }
 
     public async Task<ICollectionResult<T>?> AddRange(IDictionary<PartitionKey, T> items)
     {
         if (items == null || !items.Any())
             return null;
 
-        var responses = new List<ISingleResult<T>>(); 
+        var responses = new List<ISingleResult<T>>();
         foreach (var item in items)
         {
-            item.Value.LastUpdate = DateTime.UtcNow; 
+            item.Value.LastUpdate = DateTime.UtcNow;
             var createdItem = await SafeCallSingleItem(_container.CreateItemAsync(item.Value, item.Key));
-            responses.Add(createdItem); 
+            responses.Add(createdItem);
         }
-        return BuildSearchResultCollection(responses); 
+        return BuildSearchResultCollection(responses);
     }
 
     public async Task<ISingleResult<T>?> Remove(object? id = null, PartitionKey? partitionKey = null)
@@ -107,27 +107,54 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         var partitionKeyResolved = partitionKey ?? GetDefaultPartitionKeyFromId(id);
         if (partitionKeyResolved == null)
             return null;
-        
+
         if (partitionKeyResolved == null)
         {
-            throw new ArgumentNullException(nameof(partitionKey)); 
+            throw new ArgumentNullException(nameof(partitionKey));
         }
         var response = await SafeCallSingleItem(_container.DeleteItemAsync<T>(id!.ToString(), partitionKeyResolved.Value));
         return response;
+    }
+
+
+    public async Task<ICollectionResult<T>?> RemoveRange(List<IdWithPartitionKey> ids)
+    {
+        if (ids == null || !ids.Any())
+        {
+            return await Task.FromResult<ICollectionResult<T>?>(null);
+        }
+
+        var deletedItems = new CollectionResult<T>();
+
+        foreach (var keyPair in ids)
+        {
+            ISingleResult<T>? deletedItem = await Remove(keyPair.Id, keyPair.PartitionKey);
+            if (deletedItem != null && deletedItem.Item != null)
+            {
+                deletedItems.Items.Add(deletedItem!.Item);
+                if (!string.IsNullOrWhiteSpace(deletedItem.ErrorMessage))
+                {
+                    deletedItems.ErrorMessage += deletedItem.ErrorMessage;
+                }
+                deletedItems.StatusCodes.Add(deletedItem.StatusCode);
+            }
+        }
+        return deletedItems;
+
     }
 
     public async Task<ISingleResult<T>?> Get(object? id = null, PartitionKey? partitionKey = null)
     {
         var partitionKeyResolved = partitionKey ?? GetDefaultPartitionKeyFromId(id);
         if (partitionKeyResolved == null)
-            return null; 
+            return null;
 
         var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKeyResolved.Value));
         return item;
     }
 
     public async Task<IPaginatedResult<T>?> GetPaginatedResult(int pageSize, string? continuationToken = null, bool sortDescending = false)
-    {        
+    {
         var query = new QueryDefinition($"SELECT * FROM c ORDER BY c.LastUpdate {(sortDescending ? "DESC" : "ASC")}".Trim()); //default query - will filter to type T via 'ItemQueryIterator<T>' 
         var queryRequestOptions = new QueryRequestOptions
         {
@@ -137,11 +164,11 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
             continuationToken: continuationToken);
         var result = queryResultSetIterator.HasMoreResults ? await queryResultSetIterator.ReadNextAsync() : null;
         if (result == null)
-            return null!; 
+            return null!;
 
         var sourceContinuationToken = result.ContinuationToken;
         var paginatedResult = new PaginatedResult<T>(sourceContinuationToken, result.Resource);
-        return paginatedResult; 
+        return paginatedResult;
 
     }
 
@@ -150,7 +177,7 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         if (searchRequest?.Filter == null)
             return await Task.FromResult<ICollectionResult<T>?>(null);
         var linqQueryable = _container.GetItemLinqQueryable<T>();
-        var stopWatch = Stopwatch.StartNew(); 
+        var stopWatch = Stopwatch.StartNew();
         try
         {
             using var feedIterator = linqQueryable.Where(searchRequest.Filter).ToFeedIterator();
@@ -183,9 +210,9 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
                 return await Task.FromResult<ISingleResult<T>?>(null);
             }
             var result = BuildSearchResult(item);
-            result.ExecutionTimeInMs = stopWatch.ElapsedMilliseconds; 
+            result.ExecutionTimeInMs = stopWatch.ElapsedMilliseconds;
             return result;
-           
+
         }
         catch (Exception err)
         {

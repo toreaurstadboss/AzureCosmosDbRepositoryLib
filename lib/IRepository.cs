@@ -51,6 +51,15 @@ public interface IRepository<T> where T : IStorableEntity
     Task<ISingleResult<T>?> Remove(object? id = null, PartitionKey? partitionKey = null);
 
     /// <summary>
+    /// Removes items from container in DB. Param <paramref name="ids"/> must be provided.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="partitionKey"></param>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    Task<ICollectionResult<T>?> RemoveRange(List<IdWithPartitionKey> ids);
+
+    /// <summary>
     /// Adds a set of items to container in DB. A shared partitionkey is used and the items are added inside a transaction as a single operation.
     /// </summary>
     /// <typeparam name="T"></typeparam>
