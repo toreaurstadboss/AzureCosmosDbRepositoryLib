@@ -32,7 +32,14 @@ public interface IRepository<T> where T : IStorableEntity
     /// </summary>
     /// <param name="searchRequest"></param>
     /// <returns></returns>
-    Task<ICollectionResult<T>?> Find(ISearchRequest<T> searchRequest); 
+    Task<ICollectionResult<T>?> Find(ISearchRequest<T> searchRequest);
+
+    /// <summary>
+    /// Searches for a matching items by predicate (where condition) given in <paramref name="searchRequest"/>.
+    /// </summary>
+    /// <param name="searchRequest"></param>
+    /// <returns></returns>
+    Task<ISingleResult<T>?> FindOne(ISearchRequest<T> searchRequest);
 
     /// <summary>
     /// Removes an item from container in DB. Param <paramref name="partitionKey"/> and param <paramref name="id"/> should be provided.

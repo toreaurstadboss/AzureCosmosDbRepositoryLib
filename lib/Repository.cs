@@ -169,6 +169,30 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         return await Task.FromResult<ICollectionResult<T>?>(null);
     }
 
+    public async Task<ISingleResult<T>?> FindOne(ISearchRequest<T> searchRequest)
+    {
+        if (searchRequest?.Filter == null)
+            return await Task.FromResult<ISingleResult<T>?>(null);
+        var linqQueryable = _container.GetItemLinqQueryable<T>(allowSynchronousQueryExecution: true);
+        var stopWatch = Stopwatch.StartNew();
+        try
+        {
+            var item = linqQueryable.Where(searchRequest.Filter).AsEnumerable().FirstOrDefault();
+            if (item == null)
+            {
+                return await Task.FromResult<ISingleResult<T>?>(null);
+            }
+            var result = BuildSearchResult(item);
+            result.ExecutionTimeInMs = stopWatch.ElapsedMilliseconds; 
+            return result;
+           
+        }
+        catch (Exception err)
+        {
+            return await Task.FromResult(BuildSearchResult(err));
+        }
+    }
+
     public string? GetDatabaseName()
     {
         return _database?.Id;

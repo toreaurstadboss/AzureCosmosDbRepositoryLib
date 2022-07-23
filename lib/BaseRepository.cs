@@ -108,6 +108,14 @@ namespace AzureCosmosDbRepositoryLib
             };
         }
 
+        public ISingleResult<T> BuildSearchResult(Exception err)
+        {
+            return new SingleResult<T>
+            {
+                ErrorMessage = err.ToString()
+            };
+        }
+
         /// <summary>
         /// This helper method can be used in cased using something other than IStorableEntity interface. We must have a property decorated with Json Attribute set to 'id' anyways for using it with Azure Cosmos DB. 
         /// Returns default partition key for item. The type <typeparamref name="T"/> of item must have a property with JsonProperty attribute and set its property to 'id' to signal that property is the id of the item. Azure cosmos db requires identifiable objects 

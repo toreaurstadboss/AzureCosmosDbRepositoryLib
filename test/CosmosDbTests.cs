@@ -242,6 +242,36 @@ public class CosmosDbTests : IDisposable
     }
 
     [Fact]
+    public void AddFindOneDeleteFromContainer_Succeeds()
+    {
+        string pattern = "LOOK FOR THIS ITEM ###: ";
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 100,
+            Task = pattern + $"{DateTime.UtcNow}"
+        };
+
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem)).Result;
+        response!.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
+
+
+        //try finding the items too 
+
+        var searchRequest = new SearchRequest<TodoListItem>
+        {
+            Filter = f => f.Task != null && f.Task.Contains(pattern) == true
+        };
+
+        ISingleResult<TodoListItem>? item = Task.Run(async () => await _repository!.FindOne(searchRequest)).Result;
+        var itemAllMatch = item!.Item!.Task!.StartsWith(pattern);
+        itemAllMatch.Should().BeTrue();
+
+        var responseDeletion = Task.Run(async () => await _repository!.Remove(todoItem.Id));
+        responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public void AddItemsAndRemoveItemsFromContainer_Succeeds()
     {
         var todoItem = new TodoListItem
