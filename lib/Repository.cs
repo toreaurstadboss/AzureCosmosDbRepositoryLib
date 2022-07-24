@@ -82,6 +82,21 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         return response;
     }
 
+    public async Task<ICollectionResult<T>?> AddOrUpdateRange(IDictionary<PartitionKey, T> items)
+    {
+        if (items == null || !items.Any())
+            return await Task.FromResult<ICollectionResult<T>?>(null);
+
+        var responses = new List<ISingleResult<T>>();
+        foreach (var item in items)
+        {
+            item.Value.LastUpdate = DateTime.UtcNow;
+            var createdItem = await SafeCallSingleItem(_container.UpsertItemAsync(item.Value, item.Key));
+            responses.Add(createdItem);
+        }
+        return BuildSearchResultCollection(responses);
+    }
+
     public void Dispose()
     {
         Dispose(true);

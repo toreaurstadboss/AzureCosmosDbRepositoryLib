@@ -69,6 +69,14 @@ public interface IRepository<T> where T : IStorableEntity
     Task<ICollectionResult<T>?> AddRange(IDictionary<PartitionKey, T> items);
 
     /// <summary>
+    /// Adds or updates items via 'Upsert' method in container in DB. 
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    Task<ICollectionResult<T>?> AddOrUpdateRange(IDictionary<PartitionKey, T> items);
+
+
+    /// <summary>
     /// Adds or updates an item via 'Upsert' method in container in DB. 
     /// </summary>
     /// <param name="item"></param>
