@@ -22,10 +22,9 @@ public interface IRepository<T> where T : IStorableEntity
     /// Retrieves an item to container in DB. Param <paramref name="partitionKey"/> and param <paramref name="id"/> should be provided.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ISingleResult<T>?> Get(object? id = null, PartitionKey? partitionKey = null);
+    Task<ISingleResult<T>?> Get(IdWithPartitionKey id);
 
     /// <summary>
     /// Searches for a matching items by predicate (where condition) given in <paramref name="searchRequest"/>.
@@ -48,7 +47,7 @@ public interface IRepository<T> where T : IStorableEntity
     /// <param name="partitionKey"></param>
     /// <param name="id"></param>
     /// <returns></returns>
-    Task<ISingleResult<T>?> Remove(object? id = null, PartitionKey? partitionKey = null);
+    Task<ISingleResult<T>?> Remove(IdWithPartitionKey id);
 
     /// <summary>
     /// Removes items from container in DB. Param <paramref name="ids"/> must be provided.

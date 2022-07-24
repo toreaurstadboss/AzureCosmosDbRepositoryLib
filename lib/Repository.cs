@@ -102,17 +102,20 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         return BuildSearchResultCollection(responses);
     }
 
-    public async Task<ISingleResult<T>?> Remove(object? id = null, PartitionKey? partitionKey = null)
+    public async Task<ISingleResult<T>?> Remove(IdWithPartitionKey id)
     {
-        var partitionKeyResolved = partitionKey ?? GetDefaultPartitionKeyFromId(id);
+        if (id == null || id.Id == null)
+            return null; 
+
+        var partitionKeyResolved = id.PartitionKey ?? GetDefaultPartitionKeyFromId(id.Id);
         if (partitionKeyResolved == null)
             return null;
 
         if (partitionKeyResolved == null)
         {
-            throw new ArgumentNullException(nameof(partitionKey));
+            throw new ArgumentNullException(nameof(id));
         }
-        var response = await SafeCallSingleItem(_container.DeleteItemAsync<T>(id!.ToString(), partitionKeyResolved.Value));
+        var response = await SafeCallSingleItem(_container.DeleteItemAsync<T>(id!.Id!.ToString(), partitionKeyResolved.Value));
         return response;
     }
 
@@ -126,9 +129,9 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
 
         var deletedItems = new CollectionResult<T>();
 
-        foreach (var keyPair in ids)
+        foreach (var id in ids)
         {
-            ISingleResult<T>? deletedItem = await Remove(keyPair.Id, keyPair.PartitionKey);
+            ISingleResult<T>? deletedItem = await Remove(id);
             if (deletedItem != null && deletedItem.Item != null)
             {
                 deletedItems.Items.Add(deletedItem!.Item);
@@ -143,13 +146,17 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
 
     }
 
-    public async Task<ISingleResult<T>?> Get(object? id = null, PartitionKey? partitionKey = null)
+    public async Task<ISingleResult<T>?> Get(IdWithPartitionKey id)
     {
-        var partitionKeyResolved = partitionKey ?? GetDefaultPartitionKeyFromId(id);
+        if (id == null || id.Id == null)
+        {
+            return null; 
+        }
+        var partitionKeyResolved = id.PartitionKey ?? GetDefaultPartitionKeyFromId(id.Id);
         if (partitionKeyResolved == null)
             return null;
 
-        var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.ToString(), partitionKeyResolved.Value));
+        var item = await SafeCallSingleItem(_container.ReadItemAsync<T>(id?.Id?.ToString(), partitionKeyResolved.Value));
         return item;
     }
 

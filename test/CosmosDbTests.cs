@@ -129,7 +129,7 @@ public class CosmosDbTests : IDisposable
         _output.WriteLine(resultText);
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove(todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey }));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         responseDeletion!.Result!.StatusCode?.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
@@ -189,11 +189,11 @@ public class CosmosDbTests : IDisposable
 
         //try getting the item too 
 
-        var item = Task.Run(async () => await _repository!.Get(todoItem.Id)).Result;
+        var item = Task.Run(async () => await _repository!.Get(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey })).Result;
         item!.Item!.Id.Should().Be(todoItem.Id);
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove(todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey }));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
@@ -222,13 +222,13 @@ public class CosmosDbTests : IDisposable
 
         //try getting the item too after updating it 
 
-        var item = Task.Run(async () => await _repository!.Get(todoItem.Id)).Result;
+        var item = Task.Run(async () => await _repository!.Get(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey })).Result;
         item!.Item!.Id.Should().Be(todoItem.Id);
 
         item!.Item!.Task.Should().Be(todoItem.Task); 
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove(todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey }));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
@@ -269,10 +269,10 @@ public class CosmosDbTests : IDisposable
         var itemsAllMatch = items!.Items.All(x => x.Task!.StartsWith(pattern));
         itemsAllMatch.Should().BeTrue(); 
 
-        var responseDeletion = Task.Run(async () => await _repository!.Remove(todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository!.Remove(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey }));
         responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
 
-        var responseDeletionSecond = Task.Run(async () => await _repository!.Remove(anotherTodoItem.Id));
+        var responseDeletionSecond = Task.Run(async () => await _repository!.Remove(new IdWithPartitionKey { Id = anotherTodoItem.Id, PartitionKey = anotherTodoItem.PartitionKey }));
         responseDeletionSecond!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
 
@@ -302,7 +302,7 @@ public class CosmosDbTests : IDisposable
         var itemAllMatch = item!.Item!.Task!.StartsWith(pattern);
         itemAllMatch.Should().BeTrue();
 
-        var responseDeletion = Task.Run(async () => await _repository!.Remove(todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository!.Remove(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey }));
         responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
     }
 
@@ -337,12 +337,12 @@ public class CosmosDbTests : IDisposable
 
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        var responseDeletion = Task.Run(async () => await _repository.Remove(todoItem.Id));
+        var responseDeletion = Task.Run(async () => await _repository.Remove(new IdWithPartitionKey { Id = todoItem.Id, PartitionKey = todoItem.PartitionKey }));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         responseDeletion!.Result!.StatusCode!.Should().Be(System.Net.HttpStatusCode.NoContent);
 
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-        responseDeletion = Task.Run(async () => await _repository.Remove(anotherTodoItem.Id));
+        responseDeletion = Task.Run(async () => await _repository.Remove(new IdWithPartitionKey { Id = anotherTodoItem.Id, PartitionKey = anotherTodoItem.PartitionKey }));
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
         responseDeletion!.Result!.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
 
