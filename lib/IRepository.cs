@@ -90,7 +90,7 @@ public interface IRepository<T> where T : IStorableEntity
     /// <param name="continuationToken"></param>
     /// <param name="sortDescending">If true, sorting descending (sorting via LastUpdate property so newest items shows first)</param>
     /// <returns></returns>
-    Task<IPaginatedResult<T>?> GetPaginatedResult(int pageSize, string? continuationToken = null, bool sortDescending = false, Expression<Func<T, object>>[]? sortByMembers = null);
+    Task<IPaginatedResult<T>?> GetAllPaginated(int pageSize, string? continuationToken = null, bool sortDescending = false, Expression<Func<T, object>>[]? sortByMembers = null);
 
     /// <summary>
     /// On demand method exposed from exposing this respository on demands. Frees up resources such as CosmosClient object inside.

@@ -96,9 +96,9 @@ public class CosmosDbTests : IDisposable
 
         var customSorting = new System.Linq.Expressions.Expression<Func<TodoListItem, object>>[] { m => m.Priority };
 
-        IPaginatedResult<TodoListItem>? paginatedResultFirstPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: null, sortDescending: true, sortByMembers: customSorting )).Result;
-        IPaginatedResult<TodoListItem>? paginatedResultSecondPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultFirstPage!.ContinuationToken, sortDescending: true, sortByMembers: customSorting)).Result;
-        IPaginatedResult<TodoListItem>? paginatedResultThirdPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultSecondPage!.ContinuationToken, sortDescending: true, sortByMembers: customSorting)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultFirstPage = Task.Run(async () => await _repository!.GetAllPaginated(1, continuationToken: null, sortDescending: true, sortByMembers: customSorting )).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultSecondPage = Task.Run(async () => await _repository!.GetAllPaginated(1, continuationToken: paginatedResultFirstPage!.ContinuationToken, sortDescending: true, sortByMembers: customSorting)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultThirdPage = Task.Run(async () => await _repository!.GetAllPaginated(1, continuationToken: paginatedResultSecondPage!.ContinuationToken, sortDescending: true, sortByMembers: customSorting)).Result;
 
         paginatedResultFirstPage!.Items.Should().NotBeEmpty();
         paginatedResultSecondPage!.Items.Should().NotBeEmpty();
@@ -147,9 +147,9 @@ public class CosmosDbTests : IDisposable
         response = Task.Run(async () => await _repository!.Add(yetAnotherTodoItem)).Result;
 
 
-        IPaginatedResult<TodoListItem>? paginatedResultFirstPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: null, sortDescending: true)).Result;
-        IPaginatedResult<TodoListItem>? paginatedResultSecondPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultFirstPage!.ContinuationToken, sortDescending: true)).Result;
-        IPaginatedResult<TodoListItem>? paginatedResultThirdPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultSecondPage!.ContinuationToken, sortDescending: true)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultFirstPage = Task.Run(async () => await _repository!.GetAllPaginated(1, continuationToken: null, sortDescending: true)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultSecondPage = Task.Run(async () => await _repository!.GetAllPaginated(1, continuationToken: paginatedResultFirstPage!.ContinuationToken, sortDescending: true)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultThirdPage = Task.Run(async () => await _repository!.GetAllPaginated(1, continuationToken: paginatedResultSecondPage!.ContinuationToken, sortDescending: true)).Result;
 
         paginatedResultFirstPage!.Items.Should().NotBeEmpty();
         paginatedResultSecondPage!.Items.Should().NotBeEmpty();

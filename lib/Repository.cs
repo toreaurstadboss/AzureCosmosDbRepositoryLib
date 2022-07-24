@@ -176,7 +176,7 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         return item;
     }
 
-    public async Task<IPaginatedResult<T>?> GetPaginatedResult(int pageSize, string? continuationToken = null, bool sortDescending = false,
+    public async Task<IPaginatedResult<T>?> GetAllPaginated(int pageSize, string? continuationToken = null, bool sortDescending = false,
         Expression<Func<T, object>>[]? sortByMembers = null)
     {
         string sortByMemberNames = sortByMembers == null ? "c.LastUpdate" :

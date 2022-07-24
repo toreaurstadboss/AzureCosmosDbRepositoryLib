@@ -50,8 +50,10 @@ namespace AzureCosmosDbRepositoryLib
 
         public ICollectionResult<T> BuildSearchResultCollection(IList<ISingleResult<T>> searchResults)
         {
-            var resultingResponse = new CollectionResult<T>();
-            resultingResponse.RequestCharge = 0;
+            var resultingResponse = new CollectionResult<T>
+            {
+                RequestCharge = 0
+            };
             foreach (var item in searchResults)
             {
                 if (item != null && item.Item != null)
@@ -74,8 +76,10 @@ namespace AzureCosmosDbRepositoryLib
 
         public ICollectionResult<T> BuildSearchResultCollection(IEnumerable<T> searchResults)
         {
-            var resultingResponse = new CollectionResult<T>();
-            resultingResponse.RequestCharge = 0;
+            var resultingResponse = new CollectionResult<T>
+            {
+                RequestCharge = 0
+            };
             foreach (var item in searchResults)
             {
                 if (item != null && item != null)
