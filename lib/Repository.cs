@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Newtonsoft.Json;
 using System.Diagnostics;
+using System.Linq.Expressions;
 
 namespace AzureCosmosDbRepositoryLib;
 
@@ -160,9 +161,12 @@ public class Repository<T> : BaseRepository<T>, IRepository<T>, IDisposable wher
         return item;
     }
 
-    public async Task<IPaginatedResult<T>?> GetPaginatedResult(int pageSize, string? continuationToken = null, bool sortDescending = false)
+    public async Task<IPaginatedResult<T>?> GetPaginatedResult(int pageSize, string? continuationToken = null, bool sortDescending = false,
+        Expression<Func<T, object>>[]? sortByMembers = null)
     {
-        var query = new QueryDefinition($"SELECT * FROM c ORDER BY c.LastUpdate {(sortDescending ? "DESC" : "ASC")}".Trim()); //default query - will filter to type T via 'ItemQueryIterator<T>' 
+        string sortByMemberNames = sortByMembers == null ? "c.LastUpdate" :
+            string.Join(",", sortByMembers.Select(x => "c." + x.GetMemberName()).ToArray()); 
+        var query = new QueryDefinition($"SELECT * FROM c ORDER BY {sortByMemberNames} {(sortDescending ? "DESC" : "ASC")}".Trim()); //default query - will filter to type T via 'ItemQueryIterator<T>' 
         var queryRequestOptions = new QueryRequestOptions
         {
             MaxItemCount = pageSize

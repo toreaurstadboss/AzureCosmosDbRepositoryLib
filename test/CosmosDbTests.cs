@@ -55,7 +55,7 @@ public class CosmosDbTests : IDisposable
     }
 
     [Fact]
-    public void AddThreeAndGetPagingatedResultsAndDelete_Succeeds()
+    public void AddThreeAndGetPaginatedResultsWithCustmoSortingAndDelete_Succeeds()
     {
         var todoItem = new TodoListItem
         {
@@ -84,6 +84,58 @@ public class CosmosDbTests : IDisposable
             Id = Guid.NewGuid().ToString(),
             Priority = 100,
             Task = $"Create yet another item at the following time: {DateTime.UtcNow}",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
+        };
+        ISingleResult<TodoListItem>? response = Task.Run(async () => await _repository!.Add(todoItem)).Result;
+        response = Task.Run(async () => await _repository!.Add(anotherTodoItem)).Result;
+        response = Task.Run(async () => await _repository!.Add(yetAnotherTodoItem)).Result;
+
+        var customSorting = new System.Linq.Expressions.Expression<Func<TodoListItem, object>>[] { m => m.Priority };
+
+        IPaginatedResult<TodoListItem>? paginatedResultFirstPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: null, sortDescending: true, sortByMembers: customSorting )).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultSecondPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultFirstPage!.ContinuationToken, sortDescending: true, sortByMembers: customSorting)).Result;
+        IPaginatedResult<TodoListItem>? paginatedResultThirdPage = Task.Run(async () => await _repository!.GetPaginatedResult(1, continuationToken: paginatedResultSecondPage!.ContinuationToken, sortDescending: true, sortByMembers: customSorting)).Result;
+
+        paginatedResultFirstPage!.Items.Should().NotBeEmpty();
+        paginatedResultSecondPage!.Items.Should().NotBeEmpty();
+        paginatedResultThirdPage!.Items.Should().NotBeEmpty(); //for now we just check if we got a non-empty page content here - which seems to work ok
+
+    }
+
+    [Fact]
+    public void AddThreeAndGetPaginatedResultsAndDelete_Succeeds()
+    {
+        var todoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 8000,
+            Task = $"Create an item at the following time: {DateTime.UtcNow}. Do some fancy sorting.",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
+        };
+        var anotherTodoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 7000,
+            Task = $"Create another item at the following time: {DateTime.UtcNow}. Do some fancy sorting",
+            Timing = new TodoListItem.Schedule
+            {
+                StartTime = DateTime.Today.AddHours(8),
+                EndTime = DateTime.Today.AddHours(10)
+            }
+        };
+        var yetAnotherTodoItem = new TodoListItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            Priority = 6000,
+            Task = $"Create yet another item at the following time: {DateTime.UtcNow}. Do some fancy sorting",
             Timing = new TodoListItem.Schedule
             {
                 StartTime = DateTime.Today.AddHours(8),
